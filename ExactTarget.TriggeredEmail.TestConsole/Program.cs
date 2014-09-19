@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
 using ExactTarget.TriggeredEmail.Core.Configuration;
+using ExactTarget.TriggeredEmail.Core.RequestClients.DataExtension;
 using ExactTarget.TriggeredEmail.Creation;
 using ExactTarget.TriggeredEmail.Trigger;
 
@@ -9,9 +11,8 @@ namespace ExactTarget.TriggeredEmail.TestConsole
     {
         public static void Main()
         {
-
-            TestWithPasteHtml(Guid.NewGuid().ToString());
-            TestWithTemplate(Guid.NewGuid().ToString());
+            //TestWithPasteHtml(Guid.NewGuid().ToString());
+            //TestWithTemplate(Guid.NewGuid().ToString());
             Console.WriteLine("Done");
             Console.ReadKey();
         }
@@ -82,7 +83,10 @@ namespace ExactTarget.TriggeredEmail.TestConsole
         private static void CreateTriggeredSendWithTemplate(string externalKey)
         {
             var triggeredEmailCreator = new TriggeredEmailCreator(GetConfig());
-            triggeredEmailCreator.CreateTriggeredSendDefinitionWithEmailTemplate(externalKey, "<html><head><style>.red{color:red}</style></head>", "</html>");
+            triggeredEmailCreator.CreateTriggeredSendDefinitionWithEmailTemplate(externalKey,
+                "<html><head><style>.red{color:red}</style></head>%%field1%% %%field2%%", 
+                "</html>",
+                new HashSet<string> { "field1", "field2" });
             Console.WriteLine("Completed creating triggered send");
         }
 
@@ -105,7 +109,9 @@ namespace ExactTarget.TriggeredEmail.TestConsole
             var triggeredEmail = new ExactTargetTriggeredEmail(externalKey, "alwyn@test.uri");
             triggeredEmail.AddReplacementValue("Subject","Test email")
                             .AddReplacementValue("Body","<h2>Test email heading</h2><p>Test paragraph</p><p class='red'>This is some text in red</p>")
-                            .AddReplacementValue("Head", "<style>.red{color:red}</style>");
+                            .AddReplacementValue("Head", "<style>.red{color:red}</style>")
+                            .AddReplacementValue("field1", "field1 value")
+                            .AddReplacementValue("field2", "field2 value");
 
             var emailTrigger = new EmailTrigger(GetConfig());
             emailTrigger.Trigger(triggeredEmail);

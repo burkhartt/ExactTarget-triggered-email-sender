@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using ExactTarget.TriggeredEmail.Core;
 using ExactTarget.TriggeredEmail.Core.Configuration;
 using ExactTarget.TriggeredEmail.Core.RequestClients.DataExtension;
@@ -64,6 +65,21 @@ namespace ExactTarget.TriggeredEmail.Creation
                 layoutHtmlBelowBodyTag);
         }
 
+        public int CreateTriggeredSendDefinitionWithEmailTemplate(string externalKey, string layoutHtmlAboveBodyTag,
+            string layoutHtmlBelowBodyTag, HashSet<string> fields, string emailName = null)
+        {
+            return CreateWithTemplate(externalKey,
+               layoutHtmlAboveBodyTag +
+               "<body>" +
+               EmailContentHelper.GetContentAreaTag("dynamicArea") +
+               EmailContentHelper.GetOpenTrackingTag() +
+               EmailContentHelper.GetCompanyPhysicalMailingAddressTags() +
+               "</body>" +
+               layoutHtmlBelowBodyTag, 
+               fields, 
+               emailName);
+        }
+
         public int CreateTriggeredSendDefinitionWithPasteHtml(string externalKey)
         {
             return CreateWithoutTemplate(externalKey);
@@ -74,9 +90,9 @@ namespace ExactTarget.TriggeredEmail.Creation
             _triggeredSendDefinitionClient.StartTriggeredSend(externalKey);
         }
 
-        private int CreateWithTemplate(string externalKey, string layoutHtml)
+        private int CreateWithTemplate(string externalKey, string layoutHtml, IEnumerable<string> fields = null, string emailName = null)
         {
-            return Create(externalKey, layoutHtml);
+            return Create(externalKey, layoutHtml, fields, emailName);
         }
 
         private int CreateWithoutTemplate(string externalKey)
@@ -84,7 +100,7 @@ namespace ExactTarget.TriggeredEmail.Creation
             return Create(externalKey,null);
         }
 
-        private int Create(string externalKey, string layoutHtml)
+        private int Create(string externalKey, string layoutHtml, IEnumerable<string> fields = null, string emailName = null)
         {
             var isTemplated = !string.IsNullOrWhiteSpace(layoutHtml);
             if (externalKey.Length > Guid.Empty.ToString().Length)
@@ -107,6 +123,17 @@ namespace ExactTarget.TriggeredEmail.Creation
                     dataExtensionFieldNames.Add("Head");
                 }
 
+                if (fields != null)
+                {
+                    foreach (var field in fields)
+                    {
+                        if (!dataExtensionFieldNames.Contains(field, StringComparer.InvariantCultureIgnoreCase))
+                        {
+                            dataExtensionFieldNames.Add(field);
+                        }
+                    }
+                }
+
                 _dataExtensionClient.CreateDataExtension(dataExtensionTemplateObjectId,
                                     dataExtensionExternalKey,
                                     "triggeredsend-" + externalKey,
@@ -116,7 +143,7 @@ namespace ExactTarget.TriggeredEmail.Creation
 
 
             int emailId;
-            var emailName = "email-" + externalKey;
+            emailName = emailName ??  "email-" + externalKey;
             var emailExternalKey = ExternalKeyGenerator.GenerateExternalKey("email-" + externalKey);
             if (isTemplated)
             {
